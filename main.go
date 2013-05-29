@@ -12,15 +12,15 @@ import (
 	"strings"
 )
 
-func ProxyThatModifiesResponsesFromURL(url string, modifier func(*http.Response, *goproxy.ProxyCtx) *http.Response) *goproxy.ProxyHttpServer {
+func ProxyThatModifiesResponsesFromURL(url string, modifier func(*http.Response, *goproxy.ProxyCtx) (newResponse *http.Response, newUrl string)) *goproxy.ProxyHttpServer {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.OnResponse().DoFunc(func(r *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		var coloredStatusCode string
 		status := fmt.Sprintf("[%d]", r.StatusCode)
 		if strings.HasPrefix(ctx.Req.URL.String(), url) {
-			r = modifier(r, ctx)
+			r, newUrl := modifier(r, ctx)
 			coloredStatusCode = termcolor.ColoredWithBackground(status, termcolor.White, termcolor.BgMagenta, termcolor.Bold)
-			fmt.Printf("%s %s %v => %s\n", coloredStatusCode, termcolor.Colored(ctx.Req.Method, termcolor.White, termcolor.Bold), ctx.Req.URL, url)
+			fmt.Printf("%s %s %v => %s\n", coloredStatusCode, termcolor.Colored(ctx.Req.Method, termcolor.White, termcolor.Bold), ctx.Req.URL, newUrl)
 			return r
 		}
 		switch r.StatusCode {
@@ -43,7 +43,7 @@ func main() {
 	repl := flag.String("repl", "", "URL to replace")
 	with := flag.String("with", "", "URL to substitute")
 	flag.Parse()
-	proxyThatReplacesResponses := ProxyThatModifiesResponsesFromURL(*repl, func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+	proxyThatReplacesResponses := ProxyThatModifiesResponsesFromURL(*repl, func(resp *http.Response, ctx *goproxy.ProxyCtx) (*http.Response, string) {
 		resp.Body.Close()
 		var newBody io.ReadCloser
 		if strings.HasPrefix(*with, "http://") {
@@ -60,7 +60,7 @@ func main() {
 			}
 		}
 		resp.Body = newBody
-		return resp
+		return resp, *with
 	})
 	log.Fatal(http.ListenAndServe(":8080", proxyThatReplacesResponses))
 }
