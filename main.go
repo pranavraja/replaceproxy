@@ -17,7 +17,7 @@ func ProxyThatModifiesResponsesFromURL(url string, modifier func(*http.Response,
 	proxy.OnResponse().DoFunc(func(r *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		var coloredStatusCode string
 		status := fmt.Sprintf("[%d]", r.StatusCode)
-		if strings.HasPrefix(ctx.Req.URL.String(), url) {
+		if url != "" && strings.HasPrefix(ctx.Req.URL.String(), url) {
 			r, newUrl := modifier(r, ctx)
 			coloredStatusCode = termcolor.ColoredWithBackground(status, termcolor.White, termcolor.BgMagenta, termcolor.Bold)
 			fmt.Printf("%s %s %v => %s\n", coloredStatusCode, termcolor.Colored(ctx.Req.Method, termcolor.White, termcolor.Bold), ctx.Req.URL, newUrl)
