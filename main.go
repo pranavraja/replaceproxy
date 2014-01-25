@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/elazarl/goproxy"
-	"github.com/vrischmann/termcolor"
+	"github.com/pranavraja/replaceproxy/termcolor"
 	"io"
 	"log"
 	"net/http"
