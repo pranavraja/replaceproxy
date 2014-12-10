@@ -3,17 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/elazarl/goproxy"
-	"github.com/pranavraja/replaceproxy/termcolor"
 	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strings"
+
+	"github.com/elazarl/goproxy"
+	"github.com/pranavraja/replaceproxy/termcolor"
 )
 
 func ProxyThatModifiesResponsesFromURL(url string, modifier func(*http.Response, *goproxy.ProxyCtx) (newResponse *http.Response, newUrl string)) *goproxy.ProxyHttpServer {
 	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest().DoFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+		dump, _ := httputil.DumpRequest(ctx.Req, true)
+		println(string(dump))
+		return r, nil
+	})
 	proxy.OnResponse().DoFunc(func(r *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		var coloredStatusCode string
 		status := fmt.Sprintf("[%d]", r.StatusCode)
@@ -51,6 +58,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			resp.StatusCode = replacedResp.StatusCode
+			resp.Header = replacedResp.Header
 			newBody = replacedResp.Body
 		} else {
 			var err error
